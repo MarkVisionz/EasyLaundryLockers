@@ -1,7 +1,13 @@
+/* Styles for the main container */
+.main-container {
+  display: flex;
+}
+
 /* Styles for the cart container */
 .cart-container {
   max-width: 600px;
   margin: 0 auto;
+  margin-bottom: 1em;
   padding: 20px;
   border: none;
   border-radius: 30px;
@@ -31,14 +37,12 @@
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ddd;
-  border: 2px solid red;
 }
 
 /* Styles for item details */
 .item-details {
   display: flex;
   align-items: center;
-  border: 2px solid blue;
 }
 
 /* Styles for item image */
@@ -53,7 +57,6 @@
 .item-info {
   display: flex;
   flex-direction: column;
-  border: 2px solid pink;
 }
 
 /* Styles for quantity control */
