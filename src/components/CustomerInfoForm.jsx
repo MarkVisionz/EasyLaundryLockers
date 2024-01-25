@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import "../css/customer-info.css"
+import React, { useState, useEffect } from 'react';
 
 function CustomerInfoForm({ onFormSubmit }) {
-  // State to manage form data
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -14,19 +12,57 @@ function CustomerInfoForm({ onFormSubmit }) {
     postalCode: '',
   });
 
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/user', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming you store the token in localStorage
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Request failed with status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('User data:', data);
+      console.log('Response headers:', response.headers);
+      console.log('Response status:', response.status);
+      console.log('Response text:', await response.text());
+  
+      // Update form data with user information
+      setFormData({
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        streetAddress: data.streetAddress || '',
+        city: data.city || '',
+        state: data.state || '',
+        postalCode: data.postalCode || '',
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error.message);
+      // Handle the error, e.g., show an error message to the user
+    }
   };
 
-  // Handle form submission
+  useEffect(() => {
+    fetchUserData();
+  }, []); // Fetch user data when the component mounts
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // You can add your validation logic here
     if (formData.firstName && formData.lastName && formData.phone && formData.email) {
       onFormSubmit(formData);
       console.log('Form data submitted:', formData);

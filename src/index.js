@@ -5,6 +5,7 @@ import './css/checkout-container.css';
 import './css/order-detail.css';
 import './css/customer-info.css';
 
+
 // Create a root for ReactDOM
 const root = ReactDOM.createRoot(document.getElementById("root"));
 

@@ -1,0 +1,82 @@
+/* Styles for the dashboard container */
+.dashboard-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    border: none;
+    border-radius: 30px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  /* Styles for the dashboard heading */
+  .dashboard-container h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  /* Styles for the order list */
+  .order-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  /* Styles for each order item */
+  .order-item {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+  }
+  
+  /* Styles for order details */
+  .order-details {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Styles for order information */
+  .order-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  /* Styles for ordered items list */
+  .ordered-items {
+    list-style: none;
+    padding: 0;
+  }
+  
+  /* Styles for each ordered item */
+  .ordered-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  /* Styles for ordered item details */
+  .item-details {
+    flex: 2;
+    font-weight: bold;
+  }
+  
+  /* Styles for item quantity */
+  .item-quantity {
+    flex: 1;
+    font-weight: bold;
+  }
+  
+  /* Styles for item total */
+  .item-total {
+    flex: 1;
+    text-align: right;
+  }
+  
+  /* Hover effect for order items */
+  .order-item:hover {
+    background-color: #f5f5f5;
+  }
+  

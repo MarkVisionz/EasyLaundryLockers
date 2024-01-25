@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import '../css/modal.css';
+import axios from 'axios'; // Import axios for making HTTP requests
 
 function OrderDetailModal({ orderDetails, onClose }) {
   const [showModal, setShowModal] = useState(true);
 
-  // Function to close the modal
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
+    // Assuming orderDetails is the data you want to send to the backend
+    try {
+      const response = await axios.post('http://localhost:5000/api/orders', orderDetails);
+      console.log('Order created successfully:', response.data);
+    } catch (error) {
+      console.error('Error creating order:', error.message);
+    }
+
     setShowModal(false);
     onClose(); // Call the onClose prop to perform any additional actions
   };
