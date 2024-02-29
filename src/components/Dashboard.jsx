@@ -10,7 +10,7 @@ const Dashboard = () => {
   // Function to fetch orders from the backend
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/dashboard/orders');
+      const response = await axios.get('http://localhost:5000/api/orders');
       // Log the received data for debugging
       console.log('Orders:', response.data);
       // Update state with fetched orders

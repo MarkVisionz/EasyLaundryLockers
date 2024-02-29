@@ -13,6 +13,9 @@ function LandingPage() {
         <Link to="/register">
           <button className="register-button">Create Account</button>
         </Link>
+        <Link to="/login">
+          <button className="login-button">Login</button>
+        </Link>
       </div>
     </div>
   );

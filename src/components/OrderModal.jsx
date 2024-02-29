@@ -1,48 +1,68 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import '../css/modal.css';
-import axios from 'axios'; // Import axios for making HTTP requests
+import axios from 'axios';
 
 function OrderDetailModal({ orderDetails, onClose }) {
   const [showModal, setShowModal] = useState(true);
+  const history = useHistory();
 
   const handleCloseModal = async () => {
-    // Assuming orderDetails is the data you want to send to the backend
     try {
-      const response = await axios.post('http://localhost:5000/api/orders', orderDetails);
+      let headers = {}; // Initialize headers object
+  
+      // Check if the user is logged in (token exists in localStorage)
+      const token = localStorage.getItem('token');
+      if (token) {
+        // If logged in, include Authorization header with token
+        headers.Authorization = `Bearer ${token}`;
+      }
+  
+      // Make the request to create the order
+      const response = await axios.post('http://localhost:5000/api/orders', orderDetails, {
+        headers: headers // Include headers in the request
+      });
+  
       console.log('Order created successfully:', response.data);
+  
+      // If user is logged in, redirect to dashboard
+      if (token) {
+        history.push("/userdashboard");
+      } else {
+        // If user is not logged in, show alert and redirect to landing page
+        alert("Your order was created successfully!");
+        history.push("/");
+      }
     } catch (error) {
       console.error('Error creating order:', error.message);
+      // Handle error here (e.g., display an error message)
     }
-
+  
+    // Call onClose first, then close the modal
+    onClose();
     setShowModal(false);
-    onClose(); // Call the onClose prop to perform any additional actions
   };
+  
+  
 
-  // Render the OrderDetailModal component
   return (
     <section>
       {showModal && (
         <>
-          {/* Overlay to darken the background */}
           <span className="overlay" onClick={handleCloseModal}></span>
-
-          {/* Modal Box */}
           <div className="modal-box">
             <i className="fa-solid fa-circle-check">Check</i>
             <h2>Order Details</h2>
             <h3>You have successfully completed your order</h3>
-            
-            {/* Display order details here */}
             <div className="order-details">
               <p><strong>Order Number:</strong> {orderDetails.orderNumber}</p>
               <p><strong>Order Date:</strong> {orderDetails.orderDate}</p>
+              <p><strong>User ID:</strong> {orderDetails.userId}</p>
               <p><strong>Customer Name:</strong> {orderDetails.userName}</p>
               <p><strong>Delivery Address:</strong> {orderDetails.deliveryAddress}</p>
               <p><strong>Total Items:</strong> {orderDetails.totalItems}</p>
               <p><strong>Total Price:</strong> ${orderDetails.totalPrice.toFixed(2)}</p>
             </div>
-
-            {/* Buttons */}
             <div className="buttons">
               <button className="close-btn" onClick={handleCloseModal}>
                 Continue

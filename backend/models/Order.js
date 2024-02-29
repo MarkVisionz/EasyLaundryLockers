@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
   // Define your order schema fields here
+  userId: String,
   orderNumber: String,
   orderDate: Date,
   userName: String,

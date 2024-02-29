@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { useHistory } from 'react-router-dom';
 import axios from 'axios';
@@ -10,6 +10,8 @@ import UserDashboard from './UserDashboard';
 import LandingPage from './LandingPage';
 import RegistrationForm from './RegistrationForm';
 import PrivateRoute from './PrivateRoute';
+import LoginForm from './LoginForm';
+import Dashboard from './Dashboard';
 
 function App() {
   const history = useHistory();
@@ -28,10 +30,38 @@ function App() {
     // Add more items here
   ]);
 
+  const [user, setUser] = useState(null);
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [checkoutInfo, setCheckoutInfo] = useState(null);
   const [customerInfo, setCustomerInfo] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [temporaryId, setTemporaryId] = useState('');
+
+useEffect(() => {
+  if (!isAuthenticated) {
+    setTemporaryId(generateTemporaryId());
+  }
+}, [isAuthenticated]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.get('http://localhost:5000/api/users/:id', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      .then(response => {
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+      })
+      .catch(error => {
+        console.error('Error fetching user data:', error);
+      });
+    }
+  }, []);
+
 
   const updateQuantity = (index, newQuantity, isCheckout) => {
     const updatedItems = [...(isCheckout ? checkoutItems : cartItems)];
@@ -58,15 +88,40 @@ function App() {
     setCheckoutItems(updatedCheckoutItems);
   };
 
-  const handleCheckoutClick = () => {
-    const checkedOutItems = cartItems.filter(item => item.quantity > 0);
+  const generateTemporaryId = () => {
+  // Generate a random temporary identifier
+  return Math.random().toString(36).substring(2, 15);
+};
+
+
+const handleCheckoutClick = async () => {
+  const checkedOutItems = cartItems.filter(item => item.quantity > 0);
+
+  try {
+    const response = await axios.post('http://localhost:5000/api/orders', {
+      userId: isAuthenticated ? user._id : temporaryId,
+      items: checkedOutItems
+    });
+    
+    console.log(temporaryId);
+
     setCheckoutItems(checkedOutItems);
     setShowCheckout(true);
-  };
+  } catch (error) {
+    console.error('Error creating order:', error);
+    // Handle error
+  }
+};
 
-  const handleCustomerInfoSubmit = (formData) => {
-    setCustomerInfo(formData);
-  };
+
+  
+const handleCustomerInfoSubmit = (formData) => {
+  // Merge the formData with the userId if it's a non-registered user
+  const formDataWithUserId = isAuthenticated ? formData : { ...formData, userId: temporaryId };
+
+  setCustomerInfo(formDataWithUserId);
+};
+
 
   const handleRegistration = async (formData, history) => {
     try {
@@ -88,8 +143,7 @@ function App() {
       console.log(response.data); // Log the entire response for debugging
   
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-  
+
       // Check if history is defined before using the replace method
       if (history) {
         console.log('History object:', history); // Log the history object for debugging
@@ -107,6 +161,13 @@ function App() {
     }
   };
   
+  const handleLogout = () => {
+    // Perform any necessary cleanup or additional logout steps
+    // Clear the token from local storage
+    localStorage.removeItem('token');
+    // Update the authentication status
+    setIsAuthenticated(false);
+  };
 
 
   return (
@@ -122,7 +183,7 @@ function App() {
           </Route>
           <Route path="/order">
             {!customerInfo ? (
-              <CustomerInfoForm onFormSubmit={handleCustomerInfoSubmit} />
+              <CustomerInfoForm isAuthenticated={isAuthenticated} onFormSubmit={handleCustomerInfoSubmit} />
             ) : !showCheckout ? (
               <CartContainer
                 cartItems={cartItems}
@@ -139,10 +200,22 @@ function App() {
                 onRemoveItem={onRemoveItem}
                 setCheckoutItems={setCheckoutItems}
                 customerInfo={customerInfo}
+                temporId={temporaryId}
               />
             )}
           </Route>
-          <PrivateRoute path="/userdashboard" component={UserDashboard} />
+
+          <Route path="/login">
+            <LoginForm/>
+          </Route>
+
+          <Route path="/adminDashboard">
+            <Dashboard/>
+          </Route>
+
+          <PrivateRoute path="/userdashboard">
+            <UserDashboard onLogout={handleLogout}/>
+          </PrivateRoute>
         </Switch>
         {checkoutInfo && (
           <OrderDetailContainer orderDetails={checkoutInfo} />

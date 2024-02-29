@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-function CustomerInfoForm({ onFormSubmit }) {
+function CustomerInfoForm({ onFormSubmit, isAuthenticated }) {
   const [formData, setFormData] = useState({
+    userId: '', // Include user ID in the form data
     firstName: '',
     lastName: '',
     phone: '',
@@ -14,34 +16,30 @@ function CustomerInfoForm({ onFormSubmit }) {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/user', {
-        method: 'GET',
+      const response = await axios.get('http://localhost:5000/api/users/:id', {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming you store the token in localStorage
         },
       });
   
-      if (!response.ok) {
-        throw new Error(`Request failed with status: ${response.status}`);
+      if (!response.data.user) {
+        throw new Error('User data not available');
       }
   
-      const data = await response.json();
-      console.log('User data:', data);
-      console.log('Response headers:', response.headers);
-      console.log('Response status:', response.status);
-      console.log('Response text:', await response.text());
+      const userData = response.data.user;
   
-      // Update form data with user information
+      // Update form data with user information including user ID
       setFormData({
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        phone: data.phone || '',
-        email: data.email || '',
-        streetAddress: data.streetAddress || '',
-        city: data.city || '',
-        state: data.state || '',
-        postalCode: data.postalCode || '',
+        ...formData,
+        userId: userData._id,
+        firstName: userData.name.split(' ')[0] || '',
+        lastName: userData.name.split(' ')[1] || '',
+        phone: userData.phone || '',
+        email: userData.username || '',
+        streetAddress: userData.address || '',
+        city: userData.city || '',
+        state: userData.state || '',
+        postalCode: userData.postalCode || '',
       });
     } catch (error) {
       console.error('Error fetching user data:', error.message);
@@ -50,15 +48,17 @@ function CustomerInfoForm({ onFormSubmit }) {
   };
 
   useEffect(() => {
-    fetchUserData();
-  }, []); // Fetch user data when the component mounts
+    if (isAuthenticated) {
+      fetchUserData(); 
+    }
+  }, [isAuthenticated]); // Fetch user data when the component mounts
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevFormData) => ({
-      ...prevFormData,
+    setFormData({
+      ...formData,
       [name]: value,
-    }));
+    });
   };
 
   const handleSubmit = (e) => {

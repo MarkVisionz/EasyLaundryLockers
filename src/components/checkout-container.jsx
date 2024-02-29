@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import OrderDetailContainer from './orderDetail-container';
 import OrderDetailModal from './OrderModal';
 
-function CheckoutContainer({ checkoutItems, updateQuantity, total, onRemoveItem, setCheckoutItems, customerInfo }) {
+function CheckoutContainer({ checkoutItems, updateQuantity, total, onRemoveItem, setCheckoutItems, customerInfo, temporId}) {
 
   // State to manage displaying order details and modal
   const [showOrderDetails, setShowOrderDetails] = useState(false);
@@ -34,12 +34,15 @@ function CheckoutContainer({ checkoutItems, updateQuantity, total, onRemoveItem,
   const orderDetails = {
     orderNumber: generateOrderID(),
     orderDate: generateCurrentDate(),
+    userId: `${customerInfo.userId || temporId}`, // EXAMPLE
     userName: `${customerInfo.firstName} ${customerInfo.lastName}`,
     deliveryAddress: `${customerInfo.streetAddress}, ${customerInfo.city}, ${customerInfo.postalCode}`,
     totalItems: checkoutItems.reduce((total, item) => total + item.quantity, 0),
     totalPrice: total,
     orderedItems: checkoutItems.filter(item => item.quantity > 0),
   };
+
+  console.log(orderDetails);
 
   // Handle click to proceed to pay
   const handleProceedToPay = () => {

@@ -5,11 +5,13 @@ const cors = require('cors');
 const session = require('express-session');
 const errorHandler = require('./error-handler');
 const User = require('./models/User');
+const Order = require('./models/Order');
 const passportLocalMongoose = require('passport-local-mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,44 +66,33 @@ passport.use(
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  // Skip token verification for non-registered users creating orders
+  if (!token && req.path === '/api/orders' && req.method === 'POST') {
+    return next();
   }
 
-  jwt.verify(token, 'your-secret-key', (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: 'Unauthorized: Invalid token' });
-    }
+  // For all other requests, perform token verification
+  if (token) {
+    jwt.verify(token, 'your-secret-key', (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+      }
 
-    // Add the decoded data to the request object
-    req.decoded = decoded;
-    next();
-  });
+      // Add the decoded data to the request object
+      req.decoded = decoded;
+      next();
+    });
+  } else {
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  }
 };
+
+
 
 mongoose.connect('mongodb+srv://markvisionz:marko1@laundry1.hfldevx.mongodb.net/easyLaundryDB', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-
-// Define the order schema and model
-const orderSchema = new mongoose.Schema({
-  orderNumber: String,
-  orderDate: Date,
-  userName: String,
-  deliveryAddress: String,
-  totalItems: Number,
-  totalPrice: Number,
-  orderedItems: [
-    {
-      name: String,
-      quantity: Number,
-      price: Number,
-    },
-  ],
-});
-
-const Order = mongoose.model('Order', orderSchema);
 
 // Routes
 app.get('/', (req, res) => {
@@ -119,16 +110,41 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // Create a new order
-app.post('/api/orders', async (req, res) => {
-  const order = new Order(req.body);
-
+app.post('/api/orders', verifyToken, async (req, res) => {
   try {
+    const { orderNumber, orderDate, userName, deliveryAddress, totalItems, totalPrice, orderedItems } = req.body;
+    let userId = null;
+
+    // Check if the request contains a token
+    if (req.headers.authorization) {
+      const token = req.headers.authorization.split(' ')[1];
+      userId = jwt.verify(token, 'your-secret-key').userId;
+    }
+
+    // If the user is not authenticated, generate a temporary UUID
+    if (!userId) {
+      userId = uuidv4(); // Generate UUID
+    }
+
+    const order = new Order({
+      userId, // Assign the user ID or temporary UUID
+      orderNumber,
+      orderDate,
+      userName,
+      deliveryAddress,
+      totalItems,
+      totalPrice,
+      orderedItems,
+    });
+
     const newOrder = await order.save();
     res.status(201).json(newOrder);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: 'Failed to create order', error: error.message });
   }
 });
+
+
 
 // Update an order
 app.patch('/api/orders/:id', async (req, res) => {
@@ -150,18 +166,34 @@ app.delete('/api/orders/:id', async (req, res) => {
   }
 });
 
-// Retrieve all orders for the dashboard
-app.get('/api/dashboard/orders', async (req, res) => {
+// Retrieve orders for the User dashboard
+app.get('/api/dashboard/orders', verifyToken, async (req, res) => {
   try {
-    const orders = await Order.find();
+    const userId = req.decoded.userId; // Extract user ID from the decoded token
+    const orders = await Order.find({ userId }); // Filter orders by user ID
+
     res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving orders for the dashboard', error: error.message });
+  }
+});
+
+
+// Use the error handler middleware
+app.use(errorHandler);
+
+
+// Add this route to fetch all users
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Use the error handler middleware
-app.use(errorHandler);
+
 
 // User Registration
 app.post('/api/register', async (req, res) => {
@@ -202,6 +234,7 @@ app.post('/api/register', async (req, res) => {
 
 
 
+
 // User Login
 app.post('/api/login', passport.authenticate('local', { failureRedirect: '/login-failure' }), (req, res) => {
   const token = jwt.sign({ userId: req.user._id }, 'your-secret-key', { expiresIn: '1h' });
@@ -217,18 +250,22 @@ app.get('/login-failure', (req, res) => {
 
 // User Logout
 app.get('/api/logout', (req, res) => {
-  req.logout();
-  res.json({ message: 'Logout successful' });
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error during logout', error: err.message });
+    }
+    res.json({ message: 'Logout successful' });
+  });
 });
 
 
 // Retrieve user data by ID
-app.get('/api/user/:id', verifyToken, async (req, res) => {
-  try {
-    const userId = req.params.id;
+app.get ('/api/users/:id', verifyToken, async (req, res) => {
+  try{
+    const userId = req.decoded.userId;
     const user = await User.findById(userId);
 
-    if (!user) {
+    if(!user){
       return res.status(404).json({ message: 'User not found' });
     }
 
@@ -236,10 +273,11 @@ app.get('/api/user/:id', verifyToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving user data', error: error.message });
   }
-});
+})
+
 
 // Update User Information
-app.patch('/api/user', verifyToken, async (req, res) => {
+app.patch('/api/users/:id', verifyToken, async (req, res) => {
   try {
     const { name, address } = req.body;
     const userId = req.decoded.userId;
@@ -255,6 +293,8 @@ app.patch('/api/user', verifyToken, async (req, res) => {
     res.status(400).json({ message: 'Failed to update user information', error: error.message });
   }
 });
+
+
 
 
 app.listen(PORT, () => {
